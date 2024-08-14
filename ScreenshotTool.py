@@ -7,6 +7,8 @@ import os
 from datetime import datetime
 
 # Initialize save_folder as None
+from PIL.ImageTk import PhotoImage
+
 save_folder = None
 
 def set_save_folder():
@@ -35,22 +37,26 @@ def take_screenshot():
 
 # Create main window
 root = tk.Tk()
+
 root.title("Screenshot Tool")
 
-# Set window icon
-icon_path = "/Users/sjh/Downloads/icon.ico"  # Replace with your icon path
-root.iconbitmap(icon_path)
+
 
 # Load the button icons
 
-# screenshot_icon = ImageTk.PhotoImage(Image.open("./lcPPc0WAve.jpg").resize((36,36)))
+# screenshot_icon = ImageTk.PhotoImage(Image.open("./14251 - Idiginaus Cyber - Logo-(black).jpg").resize((36,36)))
 
 # Create buttons with icons and bind click events
 set_folder_button = tk.Button(root, text="Set Save Folder", compound="left", command=set_save_folder)
 set_folder_button.pack(pady=10)
 
-screenshot_button = tk.Button(root, text="Take Screenshot", compound="left", command=take_screenshot)
+image = Image.open("Cyber.png").resize((32,32))
+# Convert the image to a PhotoImage object that Tkinter can use
+p1 = ImageTk.PhotoImage(image)
+
+screenshot_button = tk.Button(root, text="Take Screenshot", image=p1,compound="left", command=take_screenshot)
 screenshot_button.pack(pady=10)
+# Load the image using Pillow
 
 # Run main loop
 root.mainloop()
