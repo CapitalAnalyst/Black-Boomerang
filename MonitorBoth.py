@@ -3,13 +3,13 @@ import tkinter as tk
 from tkinter import messagebox
 from pystray import Icon, MenuItem as item, Menu
 from PIL import Image, ImageDraw
-
+import ttkbootstrap as ttk
 
 class AppMonitor:
     def __init__(self, root):
         self.root = root
         self.root.title("Application Monitor")
-        self.root.geometry("400x200")
+
         self.root.withdraw()  # Start with the window hidden
 
         # Setup the tray icon
@@ -22,26 +22,26 @@ class AppMonitor:
         self.status_labels = {}
         self.process_running_status = {}
         for process_name in self.process_names:
-            label = tk.Label(root, text=f"{process_name}: ", font=("Arial", 12))
+            label = ttk.Label(root, text=f"{process_name}: ", font=("Arial", 14))
             label.pack(anchor="w", padx=20, pady=5)
-            status_label = tk.Label(root, text="Not Running", font=("Arial", 12), fg="red")
+            status_label = ttk.Label(root, text="Not Running", font=("Arial", 12),bootstyle="danger")
             status_label.pack(anchor="w", padx=20)
             self.status_labels[process_name] = status_label
             self.process_running_status[process_name] = False  # Initial status is Not Running
 
         # Start monitoring button
-        self.start_button = tk.Button(root, text="Start Monitoring", command=self.start_monitoring)
+        self.start_button = ttk.Button(root, text="Start Monitoring", command=self.start_monitoring)
         self.start_button.pack(pady=10)
 
         # Stop monitoring button
-        self.stop_button = tk.Button(root, text="Stop Monitoring", command=self.stop_monitoring, state=tk.DISABLED)
+        self.stop_button = ttk.Button(root, text="Stop Monitoring", command=self.stop_monitoring, state=tk.DISABLED)
         self.stop_button.pack(pady=10)
 
         self.monitoring = False
 
     def create_tray_icon(self):
         # Create an image for the tray icon
-        image = Image.open('lcPPc0WAve.png')
+        image = Image.open('/Users/sjh/Downloads/CA/lcPPc0WAve.png')
 
         # Define the menu for the tray icon
         menu = Menu(
@@ -78,11 +78,11 @@ class AppMonitor:
             process_running = any(proc.info['name'] == process_name for proc in psutil.process_iter(['name']))
             if process_running:
                 if not self.process_running_status[process_name]:  # It was not running previously
-                    self.status_labels[process_name].config(text="Running", fg="green")
+                    self.status_labels[process_name].config(text="Running", bootstyle="success")
                     self.process_running_status[process_name] = True  # Update status to running
             else:
                 if self.process_running_status[process_name]:  # It was running previously
-                    self.status_labels[process_name].config(text="Not Running", fg="red")
+                    self.status_labels[process_name].config(text="Not Running", bootstyle="danger")
                     self.process_running_status[process_name] = False  # Update status to not running
                     self.notify_process_stopped(process_name)  # Notify that it stopped
 
@@ -93,6 +93,20 @@ class AppMonitor:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ttk.Window(themename="lumen")
     app = AppMonitor(root)
+
+
+    # Set the window size and prevent resizing
+    window_width = 400
+    window_height = 200
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    # Calculate the position to center the window
+    position_top = int(screen_height / 2 - window_height / 2)
+    position_right = int(screen_width / 2 - window_width / 2)
+
+    # Set the geometry of the main window
+    root.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
     root.mainloop()
