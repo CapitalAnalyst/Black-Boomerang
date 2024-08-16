@@ -42,21 +42,22 @@ def take_screenshot():
 
 def fetch_news():
     global news_text
-    api_key = 'f12c1b6fd1c8fe928b130807209b7a1c'  # 请替换为您的API密钥
+    api_key = 'f12c1b6fd1c8fe928b130807209b7a1c'
     url = f"https://gnews.io/api/v4/top-headlines?token={api_key}&lang=en&country=us"
 
     try:
         response = requests.get(url)
         data = response.json()
         headlines = [article['title'] for article in data['articles']]
-        # 将所有标题合并为一个长字符串，每条新闻之间用空格分隔
-        news_text = ' *** '.join(headlines)  # 使用特殊字符分隔每条新闻
+        # Combine all headlines into one long string, separated by spaces
+        news_text = ' *** '.join(headlines)  # Use special characters to separate each news item
     except Exception as e:
         print(f"Failed to fetch news: {e}")
         news_text = "Failed to fetch news, check your internet connection or API key."
     finally:
-        # 每4分钟更新一次新闻
+        # Update news every 4 minutes
         root.after(240000, fetch_news)
+
 
 def update_news_ticker():
     global news_text
