@@ -1,14 +1,14 @@
 import psutil
 import time
 import tkinter as tk
-from tkinter import ttk, messagebox
-
+from tkinter import messagebox
+import ttkbootstrap as ttk
 
 class ProcessMonitorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Process Monitor")
-        self.root.geometry("400x300")
+
 
         # Process name is fixed to 'ScreenshotTool'
         self.process_name = "ScreenshotTool"
@@ -18,11 +18,11 @@ class ProcessMonitorApp:
         # self.process_name_label.pack(pady=10)
 
         # Start monitoring button
-        self.start_button = tk.Button(root, text="Start Monitoring", command=self.start_monitoring)
+        self.start_button = ttk.Button(root, text="Start Monitoring", command=self.start_monitoring)
         self.start_button.pack(pady=10)
 
         # Stop monitoring button
-        self.stop_button = tk.Button(root, text="Stop Monitoring", command=self.stop_monitoring, state=tk.DISABLED)
+        self.stop_button = ttk.Button(root, text="Stop Monitoring", command=self.stop_monitoring, state=tk.DISABLED)
         self.stop_button.pack(pady=10)
 
         # Output area
@@ -77,6 +77,18 @@ class ProcessMonitorApp:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ttk.Window(themename="litera")
     app = ProcessMonitorApp(root)
+    # Set the window size and prevent resizing
+    window_width = 400
+    window_height = 300
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    # Calculate the position to center the window
+    position_top = int(screen_height / 2 - window_height / 2)
+    position_right = int(screen_width / 2 - window_width / 2)
+
+    # Set the geometry of the main window
+    root.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
     root.mainloop()
