@@ -1,5 +1,6 @@
 import json
-
+import webbrowser
+import datetime
 import pyautogui
 import tkinter as tk
 import ttkbootstrap as ttk
@@ -7,17 +8,18 @@ from tkinter import filedialog
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import os
-from datetime import datetime
 
+import pandas as pd
 import requests
-# Initialize save_folder as None
 from ttkbootstrap.icons import Icon
 
 save_folder = None
+news_urls = []
+news_items = []
+current_news_index = 0
 
 def set_save_folder():
     global save_folder
-    # Open folder select dialog
     save_folder = filedialog.askdirectory()
     if save_folder:
         messagebox.showinfo("Save Folder Set", f"Save folder set to {save_folder}")
@@ -30,100 +32,94 @@ def take_screenshot():
         messagebox.showwarning("Warning", "Save folder not set. Please set a save folder first.")
         return
 
-    # Generate a unique filename using the current timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_path = os.path.join(save_folder, f"screenshot_{timestamp}.png")
-
-    # Take a screenshot using PyAutoGUI
     screenshot = pyautogui.screenshot()
     screenshot.save(file_path)
     messagebox.showinfo("Screenshot Taken", f"Screenshot saved to {file_path}")
 
-
-def fetch_news():
-    global news_text
-    api_key = 'f12c1b6fd1c8fe928b130807209b7a1c'
-    url = f"https://gnews.io/api/v4/top-headlines?token={api_key}&lang=en&country=us"
-
+def fetch_news_from_csv(file_path):
+    global news_items, news_urls
     try:
-        response = requests.get(url)
-        data = response.json()
-        headlines = [article['title'] for article in data['articles']]
-        # Combine all headlines into one long string, separated by spaces
-        news_text = ' *** '.join(headlines)  # Use special characters to separate each news item
-    except Exception as e:
-        print(f"Failed to fetch news: {e}")
-        news_text = "Failed to fetch news, check your internet connection or API key."
-    finally:
-        # Update news every 4 minutes
-        root.after(240000, fetch_news)
+        df = pd.read_csv(file_path)
+        news_items = []
+        news_urls = []
 
+        for index, row in df.iterrows():
+
+            date = row['Date'].replace('\n', ' ').strip()
+            content = row['Summary']
+            label = row['Final Label']
+            url = row['URL']
+            news_item = f"Date: {date} Content: {content}  Classified: {label}"
+            news_items.append(news_item)
+            news_urls.append(url)
+    except Exception as e:
+        print(f"Failed to fetch news from CSV: {e}")
+        news_items = []
+        news_urls = []
+
+def open_current_url(event):
+    global current_news_index
+    if news_urls and current_news_index < len(news_urls):
+        webbrowser.open(news_urls[current_news_index])
 
 def update_news_ticker():
-    global news_text
-    # news_text = fetch_news()
-    # Move the first character to the end to create the scrolling effect
-    news_text = news_text[1:] + news_text[0]
-    # Update the label text
-    news_label.config(text=news_text)
-    # Schedule the function to run again after a delay
-    news_label.after(100, update_news_ticker)
+    global current_news_index, news_items
+    news_text = news_items[current_news_index]
 
-# Create main window
+    def scroll_text():
+        nonlocal news_text
+        global current_news_index
+        news_text = news_text[1:]
+        news_label.config(text=news_text)
+
+        if len(news_text.strip()) > 0:
+            news_label.after(100, scroll_text)  # 继续滚动当前新闻
+        else:
+            # 切换到下一条新闻
+            current_news_index = (current_news_index + 1) % len(news_items)
+            news_label.after(2000, update_news_ticker)
+
+    scroll_text()
+
 root = ttk.Window(themename="superhero")
 root.title("BlackBoomerang")
+today_str = datetime.date.today().strftime("%Y-%m-%d")
+csv_file_path = f"/Users/sjh/Downloads/spider/Data/{today_str}_final.csv"
+fetch_news_from_csv(csv_file_path)
 
-
-
-
-# Set the window size and prevent resizing
 window_width = 400
 window_height = 300
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 
-# Calculate the position to center the window
 position_top = int(screen_height / 2 - window_height / 2)
 position_right = int(screen_width / 2 - window_width / 2)
 
-
-# Set the geometry of the main window
 root.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
-# root.resizable(False, False)  # Disable resizing
-# Create a top-level window
+
 top_window = tk.Toplevel()
-top_window.overrideredirect(True)  # Remove window decorations (title bar, borders)
-top_window.attributes('-topmost', True)  # Keep the window on top
-top_window.geometry(f"{top_window.winfo_screenwidth()}x45+0+0")  # Set window size and position
+top_window.overrideredirect(True)
+top_window.attributes('-topmost', True)
+top_window.geometry(f"{top_window.winfo_screenwidth()}x45+0+0")
 
-# Add a message ticker to the top-level window
-news_text = "Breaking News: Global markets experienced significant volatility today as investors reacted to the latest economic data. The U.S. Federal Reserve announced a further increase in interest rates, citing concerns over persistent inflation. In other news, a major breakthrough in renewable energy was announced as scientists successfully tested a new type of solar panel that could significantly reduce the cost of green energy. Meanwhile, international tensions are rising as multiple countries engage in diplomatic talks to address cybersecurity threats. In the world of entertainment, a highly anticipated film broke box office records on its opening weekend, drawing millions of viewers worldwide. Stay tuned for more updates."
-
-
-
-news_label = tk.Label(top_window, text=news_text, bg="yellow", font=("Helvetica", 40), anchor='w')
+news_label = tk.Label(top_window, text="", bg="yellow", font=("Helvetica", 40), anchor='w')
 news_label.pack(fill='both')
+news_label.bind("<Button-1>", open_current_url)
 
-# Start the news ticker update loo
-# fetch_news()
-# update_news_ticker()
+update_news_ticker()
 
-image = Image.open("Cyber.jpg").resize((window_width,window_height))
+image = Image.open("Cyber.jpg").resize((window_width, window_height))
 bg_photo = ImageTk.PhotoImage(image)
 bg_label = tk.Label(root, image=bg_photo)
 bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-
 root.info_image = tk.PhotoImage(data=Icon.info)
-# Load the button icons
-set_folder_button = ttk.Button(root, text="Set Save Folder",image=root.info_image, compound="left", command=set_save_folder)
+set_folder_button = ttk.Button(root, text="Set Save Folder", image=root.info_image, compound="left", command=set_save_folder)
 set_folder_button.pack(pady=40)
-#
 
-
-screenshot_button = ttk.Button(root,image=root.info_image,text="Take Screenshot", compound="left", command=take_screenshot)
+screenshot_button = ttk.Button(root, image=root.info_image, text="Take Screenshot", compound="left", command=take_screenshot)
 screenshot_button.pack()
 
-
-# Run main loop
 root.mainloop()
