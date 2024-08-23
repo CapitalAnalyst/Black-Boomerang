@@ -1,10 +1,20 @@
+import os
+import sys
+
 import psutil
 import tkinter as tk
 from tkinter import messagebox
 from pystray import Icon, MenuItem as item, Menu
 from PIL import Image, ImageDraw
 import ttkbootstrap as ttk
+def get_resource_path(relative_path):
+    """ Get the absolute path to the resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
 
+    return os.path.join(base_path, relative_path)
 class AppMonitor:
     def __init__(self, root):
         self.root = root
@@ -40,9 +50,12 @@ class AppMonitor:
         self.monitoring = False
 
     def create_tray_icon(self):
+        image_path = get_resource_path("lcPPc0WAve.png")
         # Create an image for the tray icon
-        image = Image.open('/Users/sjh/Downloads/CA/lcPPc0WAve.png')
 
+
+
+        image = Image.open(image_path)
         # Define the menu for the tray icon
         menu = Menu(
             item('Open Monitor', self.show_window),
