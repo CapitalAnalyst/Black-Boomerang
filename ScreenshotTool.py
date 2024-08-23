@@ -8,6 +8,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import os
+import sys
 
 import pandas as pd
 import requests
@@ -18,21 +19,32 @@ news_urls = []
 news_items = []
 current_news_index = 0
 
-def set_save_folder():
-    global save_folder
-    save_folder = filedialog.askdirectory()
-    if save_folder:
-        messagebox.showinfo("Save Folder Set", f"Save folder set to {save_folder}")
-    else:
-        messagebox.showwarning("Warning", "Save folder not set. Screenshot will not be saved.")
+def get_resource_path(relative_path):
+    """ Get the absolute path to the resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
 
-def take_screenshot():
+    return os.path.join(base_path, relative_path)
+
+def set_save_folder_on_startup():
+    global save_folder
+    root.withdraw()  # Hide the main window
+    save_folder = filedialog.askdirectory(title="Select Save Folder")
+    root.deiconify()  # Show the main window after the folder is selected
+
+    if not save_folder:
+        messagebox.showwarning("Warning", "Save folder not set. Screenshot will not be saved.")
+        root.destroy()
+
+def take_screenshot(event):
     global save_folder
     if not save_folder:
         messagebox.showwarning("Warning", "Save folder not set. Please set a save folder first.")
         return
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     file_path = os.path.join(save_folder, f"screenshot_{timestamp}.png")
     screenshot = pyautogui.screenshot()
     screenshot.save(file_path)
@@ -46,7 +58,6 @@ def fetch_news_from_csv(file_path):
         news_urls = []
 
         for index, row in df.iterrows():
-
             date = row['Date'].replace('\n', ' ').strip()
             content = row['Summary']
             label = row['Final Label']
@@ -75,9 +86,8 @@ def update_news_ticker():
         news_label.config(text=news_text)
 
         if len(news_text.strip()) > 0:
-            news_label.after(100, scroll_text)  # 继续滚动当前新闻
+            news_label.after(100, scroll_text)
         else:
-            # 切换到下一条新闻
             current_news_index = (current_news_index + 1) % len(news_items)
             news_label.after(2000, update_news_ticker)
 
@@ -85,19 +95,24 @@ def update_news_ticker():
 
 root = ttk.Window(themename="superhero")
 root.title("BlackBoomerang")
+
+set_save_folder_on_startup()
+
 today_str = datetime.date.today().strftime("%Y-%m-%d")
-csv_file_path = f"/Users/sjh/Downloads/spider/Data/{today_str}_final.csv"
+csv_file_path = "final.csv"
+csv_file_path = get_resource_path("final.csv")
 fetch_news_from_csv(csv_file_path)
 
-window_width = 400
-window_height = 300
+window_width = 70
+window_height = 60
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 
-position_top = int(screen_height / 2 - window_height / 2)
-position_right = int(screen_width / 2 - window_width / 2)
+position_top = screen_height - window_height - 100
+position_right = screen_width - window_width - 5
 
 root.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
+root.resizable(False, False)
 
 top_window = tk.Toplevel()
 top_window.overrideredirect(True)
@@ -110,16 +125,12 @@ news_label.bind("<Button-1>", open_current_url)
 
 update_news_ticker()
 
-image = Image.open("Cyber.jpg").resize((window_width, window_height))
+# Correctly load the image
+image_path = get_resource_path("Cyber copy.png")
+image = Image.open(image_path).resize((window_width, window_height))
 bg_photo = ImageTk.PhotoImage(image)
 bg_label = tk.Label(root, image=bg_photo)
 bg_label.place(x=0, y=0, relwidth=1, relheight=1)
-
-root.info_image = tk.PhotoImage(data=Icon.info)
-set_folder_button = ttk.Button(root, text="Set Save Folder", image=root.info_image, compound="left", command=set_save_folder)
-set_folder_button.pack(pady=40)
-
-screenshot_button = ttk.Button(root, image=root.info_image, text="Take Screenshot", compound="left", command=take_screenshot)
-screenshot_button.pack()
+bg_label.bind("<Button-1>", take_screenshot)  # Bind screenshot function to image click
 
 root.mainloop()
