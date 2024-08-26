@@ -1,4 +1,7 @@
 import json
+import logging
+import shutil
+import threading
 import webbrowser
 import datetime
 import pyautogui
@@ -11,8 +14,10 @@ import os
 import sys
 
 import pandas as pd
-import requests
-from ttkbootstrap.icons import Icon
+from spider.spider import *
+
+
+
 
 save_folder = None
 news_urls = []
@@ -27,6 +32,13 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+def get_writable_path(filename):
+    """ Determine a writable directory for storing the updated CSV file """
+    user_data_dir = os.path.expanduser("~")  # Store in the user's home directory
+    writable_path = os.path.join(user_data_dir, "BlackBoomerang", filename)
+    os.makedirs(os.path.dirname(writable_path), exist_ok=True)  # Create the directory if it doesn't exist
+    return writable_path
 
 def set_save_folder_on_startup():
     global save_folder
@@ -93,14 +105,63 @@ def update_news_ticker():
 
     scroll_text()
 
+def run_scraper_task():
+    urls_and_sites = {
+        "https://thehackernews.com/": "hackernews",
+        "https://www.cyber.gov.au/about-us/view-all-content/news-and-media": "cyber",
+        "https://www.afp.gov.au/news-centre": "afp"
+    }
+
+    for url, site in urls_and_sites.items():
+        html_content = download_html(url)
+        if html_content:
+            parse_and_save_news(html_content, site)
+
+    # Path to the newly generated CSV
+    generated_csv_path = get_writable_path("final_new.csv")
+
+
+    # Path to the writable final.csv location
+    writable_csv_path = get_writable_path("final.csv")
+
+
+
+    # Replace the old final.csv with the new one
+    shutil.move(generated_csv_path, writable_csv_path)
+    print(f"CSV file has been updated: {writable_csv_path}")
+
+
+    # Schedule the next run in 24 hours
+    threading.Timer(86400, run_scraper_task).start()  # 86400 seconds = 24 hours
+    csv_file_path = ensure_writable_csv()
+    fetch_news_from_csv(csv_file_path)
+
+
+
+def start_scraper_in_background():
+    # Run scraper task in a background thread
+    scraper_thread = threading.Thread(target=run_scraper_task)
+    scraper_thread.daemon = False # Ensure thread continues running until completion
+    scraper_thread.start()
+
+# Ensure final.csv exists in a writable location
+def ensure_writable_csv():
+    writable_csv_path = get_writable_path("final.csv")
+    if not os.path.exists(writable_csv_path):
+        # Copy the bundled final.csv to the writable location
+        shutil.copy(get_resource_path("final.csv"), writable_csv_path)
+    return writable_csv_path
+
+# Start the scraper in the background
+start_scraper_in_background()
+
 root = ttk.Window(themename="superhero")
 root.title("BlackBoomerang")
 
 set_save_folder_on_startup()
 
-today_str = datetime.date.today().strftime("%Y-%m-%d")
-csv_file_path = "final.csv"
-csv_file_path = get_resource_path("final.csv")
+# Load the CSV from the writable location
+csv_file_path = ensure_writable_csv()
 fetch_news_from_csv(csv_file_path)
 
 window_width = 70
@@ -127,6 +188,7 @@ update_news_ticker()
 
 # Correctly load the image
 image_path = get_resource_path("Cyber copy.png")
+
 image = Image.open(image_path).resize((window_width, window_height))
 bg_photo = ImageTk.PhotoImage(image)
 bg_label = tk.Label(root, image=bg_photo)
